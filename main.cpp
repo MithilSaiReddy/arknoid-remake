@@ -13,8 +13,8 @@ using namespace std;
 static const int screenWidth = 800;
 static const int screenHeight = 450;
 static const int PLAYER_MAX_LIFE = 3;
-static const int BRICKS_PER_LINE = 10;
-static const int LINES_OF_BRICKS = 3;
+static const int BRICKS_PER_LINE = 20;
+static const int LINES_OF_BRICKS = 5;
 
 //Functions
 static void Update(void);
@@ -34,10 +34,18 @@ typedef struct Brick{
 	bool active;
 }Brick;
 
+typedef struct Ball{
+	Vector2 position;
+	Vector2 speed;
+	bool active;
+	int radius;
+}Ball;
+
 //InitClasses
 Player player;	
 Brick brick[LINES_OF_BRICKS][BRICKS_PER_LINE];
 Vector2 brickSize;
+Ball ball;
 
 int main()
 {
@@ -65,10 +73,16 @@ void Init(void)
 	player.size = (Vector2){ screenWidth/10, 20 };
 	player.life = PLAYER_MAX_LIFE;
 	
+	//ball
+	ball.position = (Vector2){screenWidth/2,screenHeight * 7/8 - 30};
+	ball.speed = (Vector2){0,0};
+	ball.radius = 7;
+	ball.active = false;
+	
 	//bircks init
 	brickSize = (Vector2){(float)GetScreenWidth()/(float)BRICKS_PER_LINE, 40 };
 	
-     int initialDownPosition = 50;
+     int initialDownPosition = 30;
 
      for (int i = 0; i < LINES_OF_BRICKS; i++)
      {
@@ -87,6 +101,46 @@ void Update(void)
 	if ((player.position.x - player.size.x/2) <= 0) player.position.x = player.size.x/2;
 	if(IsKeyDown(KEY_RIGHT)) player.position.x += 5;
 	if((player.position.x - player.size.x/2) >= screenWidth) player.position.x = screenWidth - player.size.x/2;
+	
+	//BALL
+	//ball launch 
+	if(!ball.active)
+	{
+		if(IsKeyPressed(KEY_SPACE))
+		{
+			ball.active = true;
+			ball.speed = (Vector2){0,-5};
+		}
+	}
+	//ball movement
+	if (ball.active)
+	{
+		ball.position.x += ball.speed.x;
+ 		ball.position.y += ball.speed.y;
+	}
+	else
+	{
+		ball.position = (Vector2){screenWidth/2,screenHeight * 7/8 - 30};
+	}
+	//ball and wall collision
+	if (((ball.position.x + ball.radius) >= screenWidth) || ((ball.position.x - ball.radius) <= 0 )) ball.speed.x *= -1;
+	if((ball.position.y - ball.radius) <= 0) ball.speed.y *= -1;
+	if((ball.position.y + ball.radius) >= screenHeight)
+	{
+		ball.speed = (Vector2){0,0};
+		ball.active = false;
+		player.life--;
+	}
+	//ball and player collision 
+	if (CheckCollisionCircleRec(ball.position, ball.radius,
+	(Rectangle){player.position.x - player.size.x/2, player.position.y - player.size.y/2,player.size.x,player.size.y}))
+	{
+		if(ball.speed.y > 0)
+		{
+			ball.speed.y *= -1;
+			ball.speed.x = (ball.position.x - ball.position.y)/ (player.size.x/2 * 2);
+		}
+	}
 }
 
 void Draw(void)
@@ -94,13 +148,16 @@ void Draw(void)
 	BeginDrawing();
 		//globals
 		ClearBackground(WHITE);
-		DrawFPS(10,10);
+		DrawFPS(600,400);
 		
 		//player
 		DrawRectangle(player.position.x - player.size.x/2, player.position.y - player.size.y/2, player.size.x, player.size.y, BLACK);
 		
 		//player health
 		 for (int i = 0; i < player.life; i++) DrawCircle(20 + 40*i, screenHeight - 30, 15, RED);
+		
+		//ball
+		DrawCircleV(ball.position,ball.radius,YELLOW);
 		
 		//Bricks
  for (int i = 0; i < LINES_OF_BRICKS; i++)
