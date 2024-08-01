@@ -12,9 +12,12 @@ using namespace std;
 //GlobalVariables
 static const int screenWidth = 800;
 static const int screenHeight = 450;
-static const int PLAYER_MAX_LIFE = 3;
+static const int PLAYER_MAX_LIFE = 4;
 static const int BRICKS_PER_LINE = 20;
 static const int LINES_OF_BRICKS = 5;
+
+static bool pause = false;
+static bool gameOver = false;
 
 //Functions
 static void Update(void);
@@ -96,6 +99,11 @@ void Init(void)
 
 void Update(void)
 {
+	if(!gameOver)
+    {
+    	if(IsKeyPressed(KEY_P)) pause = !pause;
+    	
+    	if(!pause){
 	//player
 	if(IsKeyDown(KEY_LEFT)) player.position.x -= 5;
 	if ((player.position.x - player.size.x/2) <= 0) player.position.x = player.size.x/2;
@@ -141,6 +149,70 @@ void Update(void)
 			ball.speed.x = (ball.position.x - ball.position.y)/ (player.size.x/2 * 2);
 		}
 	}
+	//ball and brick collsiion 
+            for (int i = 0; i < LINES_OF_BRICKS; i++)
+            {
+                for (int j = 0; j < BRICKS_PER_LINE; j++)
+                {
+                    if (brick[i][j].active)
+                    {
+                        // Hit below
+                        if (((ball.position.y - ball.radius) <= (brick[i][j].position.y + brickSize.y/2)) &&
+                            ((ball.position.y - ball.radius) > (brick[i][j].position.y + brickSize.y/2 + ball.speed.y)) &&
+                            ((fabs(ball.position.x - brick[i][j].position.x)) < (brickSize.x/2 + ball.radius*2/3)) && (ball.speed.y < 0))
+                        {
+                            brick[i][j].active = false;
+                            ball.speed.y *= -1;
+                        }
+                        // Hit above
+                        else if (((ball.position.y + ball.radius) >= (brick[i][j].position.y - brickSize.y/2)) &&
+                                ((ball.position.y + ball.radius) < (brick[i][j].position.y - brickSize.y/2 + ball.speed.y)) &&
+                                ((fabs(ball.position.x - brick[i][j].position.x)) < (brickSize.x/2 + ball.radius*2/3)) && (ball.speed.y > 0))
+                        {
+                            brick[i][j].active = false;
+                            ball.speed.y *= -1;
+                        }
+                        // Hit left
+                        else if (((ball.position.x + ball.radius) >= (brick[i][j].position.x - brickSize.x/2)) &&
+                                ((ball.position.x + ball.radius) < (brick[i][j].position.x - brickSize.x/2 + ball.speed.x)) &&
+                                ((fabs(ball.position.y - brick[i][j].position.y)) < (brickSize.y/2 + ball.radius*2/3)) && (ball.speed.x > 0))
+                        {
+                            brick[i][j].active = false;
+                            ball.speed.x *= -1;
+                        }
+                        // Hit right
+                        else if (((ball.position.x - ball.radius) <= (brick[i][j].position.x + brickSize.x/2)) &&
+                                ((ball.position.x - ball.radius) > (brick[i][j].position.x + brickSize.x/2 + ball.speed.x)) &&
+                                ((fabs(ball.position.y - brick[i][j].position.y)) < (brickSize.y/2 + ball.radius*2/3)) && (ball.speed.x < 0))
+                        {
+                            brick[i][j].active = false;
+                            ball.speed.x *= -1;
+                        }
+                    }
+                }
+            }
+		if(player.life <= 0) gameOver = true;
+		else//game end 
+		{
+			gameOver = true;
+			for(int i = 0; i < LINES_OF_BRICKS;i++)
+			{
+				for(int j = 0; j < BRICKS_PER_LINE; j++)
+				{
+					if(brick[i][j].active) gameOver = false;	
+				}
+			}
+		}
+	   }
+	}
+	else
+    {
+        if (IsKeyPressed(KEY_ENTER))
+        {
+            Init();
+            gameOver = false;
+        }
+    }	
 }
 
 void Draw(void)
@@ -149,7 +221,7 @@ void Draw(void)
 		//globals
 		ClearBackground(WHITE);
 		DrawFPS(600,400);
-		
+	if(!gameOver){
 		//player
 		DrawRectangle(player.position.x - player.size.x/2, player.position.y - player.size.y/2, player.size.x, player.size.y, BLACK);
 		
@@ -170,7 +242,12 @@ void Draw(void)
                         else DrawRectangle(brick[i][j].position.x - brickSize.x/2, brick[i][j].position.y - brickSize.y/2, brickSize.x, brickSize.y, SKYBLUE);
                     }
                 }
-            }		
+            }
+            
+            //User Interface
+            if (pause) DrawText("GAME PAUSED", screenWidth/2 - MeasureText("GAME PAUSED", 40)/2, screenHeight/2 - 40, 40,BLACK);
+        }
+        else DrawText("GAME OVER!! PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("GAME OVER!! PRESS [ENTER] TO PLAY AGAIN", 30)/2, GetScreenHeight()/2 - 50,30, BLACK);		
 		
 	EndDrawing();
 
